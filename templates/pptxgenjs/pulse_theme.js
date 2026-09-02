@@ -207,7 +207,8 @@ function buildPreset(theme) {
     // Not one slide in the source template has a dark or full-bleed
     // background, so panels tint rather than invert.
     light_only: true,
-    square_plates: true,
+    square_plates: (theme.plates || {}).square_corners !== false,
+    plate_shadow: (theme.plates || {}).shadow === true,
 
     type_ramp: typeRamp(t),
     readability_contract: {

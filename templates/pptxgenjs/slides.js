@@ -220,11 +220,17 @@ function shapeOpts(extra) {
   );
 }
 
-function cardShadow() {
+function cardShadow(preset) {
   // Fresh shadow descriptor every call. pptxgenjs will attach and mutate it.
+  //
+  // A preset can turn plate shadows off, and a flat theme must: the shadow ink
+  // used to be a hardcoded 0F172A, which is off-palette in any theme that does
+  // not happen to use that colour. Called with no preset it keeps the old
+  // behaviour, so untouched call sites are unaffected.
+  if (preset && preset.plate_shadow === false) return undefined;
   return {
     type: 'outer',
-    color: '0F172A',
+    color: cleanHex(preset && preset.plate_shadow_color, '0F172A'),
     opacity: 0.12,
     blur: 8,
     offset: 2,
@@ -3760,7 +3766,7 @@ function renderStandard(pptx, slide, slideData, preset) {
       fill: { color: preset.surface || 'FFFFFF' },
       line: { color: preset.line, width: 0.75 },
       rectRadius: 0.08,
-      shadow: cardShadow(),
+      shadow: cardShadow(preset),
     }));
     slide.addText(label(preset, 'keyTakeaways'), textOpts({
       x: cardX + 0.2, y: contentY + 0.15, w: cardW - 0.4, h: 0.3,
@@ -3899,7 +3905,7 @@ function renderCards(pptx, slide, slideData, preset, columns) {
       x: cx, y: cy, w: cw, h: ch,
       fill: { color: preset.surface || 'FFFFFF' },
       line: { color: preset.line, width: 0.75 },
-      shadow: cardShadow(),
+      shadow: cardShadow(preset),
     }));
     // Top accent rail.
     slide.addShape('rect', shapeOpts({
@@ -4020,7 +4026,7 @@ function renderSplit(pptx, slide, slideData, preset) {
     x: rightX, y: contentY, w: rightW, h: contentH,
     fill: { color: darkSurface(preset) },
     line: { color: darkSurface(preset), width: 0 },
-    shadow: isLightOnly(preset) ? undefined : cardShadow(),
+    shadow: isLightOnly(preset) ? undefined : cardShadow(preset),
   }));
   // Accent stripe on the right panel.
   slide.addShape('rect', shapeOpts({
@@ -4259,7 +4265,7 @@ function renderTimelineStaggered(pptx, slide, slideData, preset) {
       h,
       fill: { color: preset.surface || 'FFFFFF' },
       line: { color: preset.line, width: 0.75 },
-      shadow: cardShadow(),
+      shadow: cardShadow(preset),
     }));
     slide.addShape('rect', shapeOpts({
       x,
@@ -4408,7 +4414,7 @@ function renderTimelineChapterSpread(pptx, slide, slideData, preset) {
     h: contentH,
     fill: { color: darkSurface(preset) },
     line: { color: darkSurface(preset), width: 0 },
-    shadow: isLightOnly(preset) ? undefined : cardShadow(),
+    shadow: isLightOnly(preset) ? undefined : cardShadow(preset),
   }));
   slide.addText('01', textOpts({
     x: MARGIN_X + 0.22,
@@ -4737,7 +4743,7 @@ function renderTimeline(pptx, slide, slideData, preset) {
       x: cardX, y: cardY, w: cardW, h: cardH,
       fill: { color: preset.surface || 'FFFFFF' },
       line: { color: preset.line, width: 0.75 },
-      shadow: cardShadow(),
+      shadow: cardShadow(preset),
     }));
     // Top accent rail on the card.
     slide.addShape('rect', shapeOpts({
@@ -5230,7 +5236,7 @@ function renderStatsFeatureLeft(slide, slideData, preset, header, facts, iconPat
     h: contentH,
     fill: { color: darkSurface(preset) },
     line: { color: darkSurface(preset), width: 0 },
-    shadow: isLightOnly(preset) ? undefined : cardShadow(),
+    shadow: isLightOnly(preset) ? undefined : cardShadow(preset),
   }));
   slide.addShape('rect', shapeOpts({
     x: MARGIN_X,
@@ -5546,7 +5552,7 @@ function renderStats(pptx, slide, slideData, preset) {
       x: tx, y: tileY, w: tileW, h: tileH,
       fill: { color: darkSurface(preset) },
       line: { color: darkSurface(preset), width: 0 },
-      shadow: isLightOnly(preset) ? undefined : cardShadow(),
+      shadow: isLightOnly(preset) ? undefined : cardShadow(preset),
     }));
     // Left accent rail.
     slide.addShape('rect', shapeOpts({
@@ -10360,7 +10366,7 @@ function renderChart(pptx, slide, slideData, preset) {
   const gap = factsRight || heroStat ? 0.32 : 0.20;
   const chartH = Math.max(
     chartTreatment === 'facts-below' ? 1.82 : 2.05,
-    SLIDE_H - contentY - footerReserve - noteH - factH - bandH - roleBandH
+    contentBottom(preset, footerReserve) - contentY - noteH - factH - bandH - roleBandH
       - (showFactCards && !factsRight ? gap : 0)
       - (thresholdBand ? 0.18 : 0)
       - (note ? 0.10 : 0),
