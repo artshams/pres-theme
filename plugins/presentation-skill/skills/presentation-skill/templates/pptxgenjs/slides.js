@@ -3823,9 +3823,15 @@ function renderCards(pptx, slide, slideData, preset, columns) {
     renderEvidenceContract(slide, slideData, preset, header, evidenceContract, facts);
     return;
   }
-  const cols = columns === 2 ? 2 : 3;
-  const cards = rawCards.slice(0, cols);
-  while (cards.length < cols) {
+  // columns >= 4 asks for a grid. Before this, cards were sliced to three and
+  // anything past the third was dropped from the deck without a word.
+  const gridMode = Number(columns) >= 4;
+  const count = gridMode
+    ? Math.min(6, Math.max(4, rawCards.length))
+    : (columns === 2 ? 2 : 3);
+  const cols = count;
+  const cards = rawCards.slice(0, count);
+  while (cards.length < count) {
     cards.push({ title: '', body: '', accent: 'accent_primary' });
   }
 
@@ -3854,7 +3860,30 @@ function renderCards(pptx, slide, slideData, preset, columns) {
 
   // Per-card positions: each entry is {x, y, w, h, accentKey, maxLines}
   let placements;
-  if (useAsymmetric) {
+  if (gridMode) {
+    // Grids follow the template's own rule of element count -> shape:
+    // four read best as 2x2, six as a full 3x2, five as three over two so the
+    // grid stays full. A half-empty slot is what the template tells you to
+    // rebuild away, so no layout here leaves one.
+    const rows = count === 4 ? [2, 2] : count === 5 ? [3, 2] : count === 6 ? [3, 3] : [count];
+    const rowH = (cardH - gutter * (rows.length - 1)) / rows.length;
+    placements = [];
+    let index = 0;
+    rows.forEach((perRow, rowIdx) => {
+      const cardW = (usableW - gutter * (perRow - 1)) / perRow;
+      for (let i = 0; i < perRow; i += 1) {
+        placements.push({
+          x: MARGIN_X + i * (cardW + gutter),
+          y: cardY + rowIdx * (rowH + gutter),
+          w: cardW,
+          h: rowH,
+          big: false,
+        });
+        index += 1;
+      }
+    });
+    placements = placements.slice(0, count);
+  } else if (useAsymmetric) {
     const leftW = usableW * 0.60 - gutter / 2;
     const rightW = usableW - leftW - gutter;
     const smallH = (cardH - gutter) / 2;
@@ -5269,7 +5298,7 @@ function renderStatsFeatureLeft(slide, slideData, preset, header, facts, iconPat
     fontFace: preset.font_heading,
     fontSize: 14,
     bold: true,
-    color: 'FFFFFF',
+    color: onDarkInk(preset),
     fit: 'shrink',
   }));
   if (primary.caption) {
@@ -5280,7 +5309,11 @@ function renderStatsFeatureLeft(slide, slideData, preset, header, facts, iconPat
       h: Math.max(0.56, contentH - 2.70),
       fontFace: preset.font_body,
       fontSize: 12,
-      color: 'CBD5E1',
+      // Sits on the feature panel, so it follows that panel's ink rather than
+      // a fixed light grey that only works against a dark fill.
+      color: isLightOnly(preset)
+        ? cleanHex(preset.text_muted, '4B5563')
+        : 'CBD5E1',
       fit: 'shrink',
     }));
   }
@@ -9522,8 +9555,12 @@ function chartPanelHasFrame(preset) {
 
 function chartShowLegend(options, preset, series, payload) {
   if (options.showLegend !== undefined) return Boolean(options.showLegend);
+  // A house rule of "no legend" means the categories are read off the axis,
+  // which only works while there is one series. With two or more, nothing
+  // says which bar is which, so the preset's preference does not apply.
+  if (series.length > 1) return true;
   if (preset && preset.chart_show_legend !== undefined) return Boolean(preset.chart_show_legend);
-  return series.length > 1 || String(payload.type).toLowerCase() === 'pie';
+  return String(payload.type).toLowerCase() === 'pie';
 }
 
 function chartShowValue(options, preset) {
@@ -10364,9 +10401,16 @@ function renderChart(pptx, slide, slideData, preset) {
   const bandH = thresholdBand ? 0.74 : 0;
   const roleBandH = ['assay-readout', 'data-assay-readout'].includes(dataSystem) ? 0.46 : 0;
   const gap = factsRight || heroStat ? 0.32 : 0.20;
+  // addSummaryCallout draws over the foot of the body band after this
+  // renderer returns, so the chart has to leave room or the callout lands on
+  // the category axis labels.
+  const summaryReserveForChart = safeText(
+    slideData.summary_callout || slideData.key_summary || slideData.takeaway,
+  ) ? 0.78 : 0;
   const chartH = Math.max(
     chartTreatment === 'facts-below' ? 1.82 : 2.05,
     contentBottom(preset, footerReserve) - contentY - noteH - factH - bandH - roleBandH
+      - summaryReserveForChart
       - (showFactCards && !factsRight ? gap : 0)
       - (thresholdBand ? 0.18 : 0)
       - (note ? 0.10 : 0),

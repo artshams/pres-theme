@@ -618,6 +618,7 @@ const CONTENT_VARIANTS = new Set([
   'standard',
   'cards-2',
   'cards-3',
+  'cards-grid',
   'split',
   'timeline',
   'stats',
@@ -1619,13 +1620,35 @@ function normalizeSlide(spec, outlineDir) {
   const visualIntent = String(out.visual_intent || '').trim().toLowerCase();
   if (out.type === 'content' && (out.variant === 'standard' || out.variant === 'content')) {
     if (Array.isArray(out.cards) && out.cards.length >= 2) {
-      out.variant = out.cards.length >= 3 ? 'cards-3' : 'cards-2';
+      // The template picks the frame from the element count: two make a pair,
+      // three a row, four a 2x2, five three-over-two, six a full 3x2.
+      const n = out.cards.length;
+      if (n > 6) {
+        console.warn(
+          `[pptxgenjs] слайд '${String(out.title || '').slice(0, 40)}': ${n} карточек ` +
+          'при лимите 6 (pulse/DESIGN_RULES.md). Сгруппируйте или разнесите на два слайда; ' +
+          'сейчас отрисованы первые шесть.',
+        );
+      }
+      out.variant = n === 2 ? 'cards-2' : n === 3 ? 'cards-3' : 'cards-grid';
     } else if (Array.isArray(out.milestones) && out.milestones.length >= 2) {
       out.variant = 'timeline';
+      // A dense plan is what the template says to carry over to a continuation
+      // slide; short of that, more steps get the banded form which stacks
+      // rather than crowding one rail.
+      if (!out.timeline_mode) {
+        out.timeline_mode = out.milestones.length > 5 ? 'bands' : 'open-events';
+      }
     } else if (Array.isArray(out.quadrants) && out.quadrants.length >= 4) {
       out.variant = 'matrix';
     } else if (Array.isArray(out.facts) && out.facts.length >= 2) {
       out.variant = 'stats';
+      // Same element-count rule as the cards: three or fewer read as equal
+      // tiles, more than that gets the banded layout so the row does not
+      // squeeze. An explicit stats_mode in the outline still wins.
+      if (!out.stats_mode) {
+        out.stats_mode = out.facts.length > 3 ? 'policy-bands' : 'tiles';
+      }
     } else if (
       Array.isArray(out.headers) ||
       (out.table && Array.isArray(out.table.headers)) ||
@@ -1753,6 +1776,12 @@ function renderSlide(pptx, pSlide, slide, preset) {
       break;
     case 'cards-3':
       slides.renderCards(pptx, pSlide, slide, preset, 3);
+      break;
+    case 'cards-grid':
+      slides.renderCards(
+        pptx, pSlide, slide, preset,
+        Math.min(6, Math.max(4, Array.isArray(slide.cards) ? slide.cards.length : 4)),
+      );
       break;
     case 'split':
       slides.renderSplit(pptx, pSlide, slide, preset);
