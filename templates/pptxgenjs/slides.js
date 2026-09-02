@@ -9522,8 +9522,12 @@ function chartPanelHasFrame(preset) {
 
 function chartShowLegend(options, preset, series, payload) {
   if (options.showLegend !== undefined) return Boolean(options.showLegend);
+  // A house rule of "no legend" means the categories are read off the axis,
+  // which only works while there is one series. With two or more, nothing
+  // says which bar is which, so the preset's preference does not apply.
+  if (series.length > 1) return true;
   if (preset && preset.chart_show_legend !== undefined) return Boolean(preset.chart_show_legend);
-  return series.length > 1 || String(payload.type).toLowerCase() === 'pie';
+  return String(payload.type).toLowerCase() === 'pie';
 }
 
 function chartShowValue(options, preset) {
@@ -10364,9 +10368,16 @@ function renderChart(pptx, slide, slideData, preset) {
   const bandH = thresholdBand ? 0.74 : 0;
   const roleBandH = ['assay-readout', 'data-assay-readout'].includes(dataSystem) ? 0.46 : 0;
   const gap = factsRight || heroStat ? 0.32 : 0.20;
+  // addSummaryCallout draws over the foot of the body band after this
+  // renderer returns, so the chart has to leave room or the callout lands on
+  // the category axis labels.
+  const summaryReserveForChart = safeText(
+    slideData.summary_callout || slideData.key_summary || slideData.takeaway,
+  ) ? 0.78 : 0;
   const chartH = Math.max(
     chartTreatment === 'facts-below' ? 1.82 : 2.05,
     contentBottom(preset, footerReserve) - contentY - noteH - factH - bandH - roleBandH
+      - summaryReserveForChart
       - (showFactCards && !factsRight ? gap : 0)
       - (thresholdBand ? 0.18 : 0)
       - (note ? 0.10 : 0),
