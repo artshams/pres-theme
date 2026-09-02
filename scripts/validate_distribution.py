@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""Validate the lean npm artifact and checked-in Codex plugin snapshot."""
+
+from __future__ import annotations
+
+import json
+import subprocess
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+PLUGIN = ROOT / "plugins" / "presentation-skill"
+MAX_PACKED_BYTES = 2_000_000
+MAX_UNPACKED_BYTES = 8_000_000
+MAX_PLUGIN_BYTES = 10_000_000
+FORBIDDEN_PACKAGE_PARTS = (
+    "__pycache__",
+    "large_style_corpus_catalog.json",
+    "large_style_corpus_catalog_enriched.json",
+    "run_pptxgenjs_regression.py",
+)
+
+
+def _tree_bytes(root: Path) -> int:
+    return sum(path.stat().st_size for path in root.rglob("*") if path.is_file())
+
+
+def main() -> int:
+    completed = subprocess.run(
+        ["npm", "pack", "--dry-run", "--json"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(completed.stderr or completed.stdout)
+    records = json.loads(completed.stdout)
+    package = records[0]
+    paths = [str(item.get("path") or "") for item in package.get("files") or []]
+    leaked = sorted(
+        path
+        for path in paths
+        if any(part in path for part in FORBIDDEN_PACKAGE_PARTS)
+    )
+    required = [
+        PLUGIN / ".codex-plugin" / "plugin.json",
+        PLUGIN / "skills" / "presentation-skill" / "SKILL.md",
+        PLUGIN / "skills" / "presentation-skill" / "scripts" / "present.py",
+        PLUGIN / "skills" / "presentation-skill" / "references" / "style_token_atlas.json",
+        PLUGIN / "skills" / "presentation-skill" / "references" / "style_grammar_index.json",
+    ]
+    missing = [str(path.relative_to(ROOT)) for path in required if not path.is_file()]
+    plugin_bytes = _tree_bytes(PLUGIN)
+    failures = []
+    if int(package.get("size") or 0) > MAX_PACKED_BYTES:
+        failures.append("npm artifact exceeds 2 MB compressed")
+    if int(package.get("unpackedSize") or 0) > MAX_UNPACKED_BYTES:
+        failures.append("npm artifact exceeds 8 MB unpacked")
+    if plugin_bytes > MAX_PLUGIN_BYTES:
+        failures.append("plugin snapshot exceeds 10 MB")
+    if leaked:
+        failures.append(f"npm artifact leaked development files: {leaked}")
+    if missing:
+        failures.append(f"plugin snapshot is missing runtime files: {missing}")
+    payload = {
+        "passed": not failures,
+        "npm_packed_bytes": package.get("size"),
+        "npm_unpacked_bytes": package.get("unpackedSize"),
+        "npm_entry_count": package.get("entryCount"),
+        "plugin_bytes": plugin_bytes,
+        "leaked_paths": leaked,
+        "missing_plugin_files": missing,
+        "failures": failures,
+    }
+    print(json.dumps(payload, indent=2))
+    return 0 if not failures else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

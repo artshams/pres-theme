@@ -1,0 +1,88 @@
+{
+  "schema": "presentation_skill_discovery_v1",
+  "name": "presentation-skill",
+  "version": "0.10.0",
+  "license": "MIT",
+  "repository": "https://github.com/siril9/presentation-skill",
+  "summary": "Source-first PowerPoint/PPTX generation skill for Codex, ChatGPT, and OpenAI-style agents.",
+  "one_line": "Write outline.json, build editable .pptx decks with scripts, and run layout QA before delivery.",
+  "primary_audience": [
+    "Codex agents",
+    "ChatGPT agents",
+    "OpenAI-style agents",
+    "developers building generated PowerPoint workflows",
+    "people who need reproducible lab, clinical, investor, board, or report decks"
+  ],
+  "trigger_phrases": [
+    "build a PowerPoint",
+    "create a PPTX",
+    "generate a slide deck",
+    "make a presentation",
+    "redesign this deck",
+    "run layout QA on this deck",
+    "make a lab report deck",
+    "make a clinical summary deck",
+    "make an investor deck",
+    "make a board memo deck",
+    "turn this CSV or Excel file into slides",
+    "create scientific figure slides",
+    "make the deck rebuildable"
+  ],
+  "aliases": [
+    "powerpoint-deck-builder",
+    "pptx-skill",
+    "PowerPoint skill",
+    "PPTX skill",
+    "slide-deck generator",
+    "slides generator",
+    "deck builder",
+    "presentation generator",
+    "presentation maker",
+    "agent presentation skill",
+    "Codex presentation skill",
+    "ChatGPT presentation skill"
+  ],
+  "capabilities": [
+    "editable PowerPoint generation from outline.json",
+    "workspace mode with design_brief.json, content_plan.json, evidence_plan.json, asset_plan.json, outline.json, and notes.md",
+    "16 renderer content variants plus title and section slides",
+    "13 style families",
+    "eight full-deck role-layout grammars with bounded structural variants",
+    "automatic topic-to-preset and topic-to-composition-grammar routing",
+    "descriptor-only style corpus and atom routing",
+    "versioned coordinate-free Deck IR with stable semantic object identity",
+    "preserve-by-default patching for existing PowerPoint decks",
+    "chart, table, figure, lab-run-results, scientific-figure, KPI, comparison, matrix, timeline, and Mermaid flow slides",
+    "generated data artifact scaffolding from local tabular data",
+    "geometry, visual, readability, placeholder, accessibility, and reproducibility QA",
+    "hash-bound human or model visual-review receipts"
+  ],
+  "entrypoints": {
+    "skill_contract": "SKILL.md",
+    "agent_prompt": "agents/openai.yaml",
+    "quick_example": "examples/outline.json",
+    "benchmark_protocol": "references/benchmark_protocol.md",
+    "human_discovery": "DISCOVERY.md",
+    "readme": "README.md"
+  },
+  "proof_assets": {
+    "narrative_structures": "examples/v0.9_narrative_structures.jpg",
+    "evidence_data_structures": "examples/v0.9_evidence_data_structures.jpg",
+    "decisions_sources": "examples/v0.9_decisions_sources.jpg",
+    "editable_gallery": "examples/v0.9_full_deck_taste_grammar_gallery.pptx",
+    "native_vs_updated": "decks/native-vs-latest-random-topics-20260623/readme_images/codex_native_vs_updated_clean_three_topics.png",
+    "release_url": "https://github.com/siril9/presentation-skill/releases/tag/v0.10.0"
+  },
+  "default_commands": {
+    "quick_brief": "python3 scripts/present.py brief --topic \"Deck topic\" --prompt \"Original request\" --profile auto --output quick_deck_agent_brief.json",
+    "quick_finalize": "python3 scripts/present.py finalize --outline /absolute/path/outline.json --output /absolute/path/out.pptx --qa-dir /absolute/path/qa",
+    "workspace_init": "python3 scripts/present.py init --workspace /absolute/path/decks/my-deck --title \"My Deck Title\" --prompt \"Original request\" --profile auto",
+    "workspace_build": "python3 scripts/present.py build --workspace /absolute/path/decks/my-deck",
+    "accessible_final_build": "python3 scripts/python_runtime.py scripts/build_workspace.py --workspace decks/my-deck --qa --strict-accessibility --visual-review --fail-on-visual-review-warnings --overwrite"
+  },
+  "do_not_use_for": [
+    "pure text brainstorming with no deck artifact",
+    "mutating a generated PPTX when source workspace files exist",
+    "shipping a deliverable deck without QA"
+  ]
+}
