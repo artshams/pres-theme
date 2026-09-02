@@ -9591,7 +9591,17 @@ function chartColors(payload, preset) {
     const color = optionalHex(value);
     if (color && !colors.includes(color)) colors.push(color);
   });
-  return colors.length ? colors : ['0B6B78', '1493A4', '64748B'];
+  const ramp = colors.length ? colors : ['0B6B78', '1493A4', '64748B'];
+
+  // pptxgenjs spreads the palette across data points when a bar, line or area
+  // chart has a single series, which turns one measure into a rainbow and
+  // implies a distinction that is not in the data. Per-point colour is only
+  // meaningful where each point IS a category -- pie and doughnut.
+  const type = String((payload && payload.type) || 'bar').trim().toLowerCase();
+  const perPointTypes = new Set(['pie', 'doughnut']);
+  const seriesCount = Array.isArray(payload && payload.series) ? payload.series.length : 0;
+  if (seriesCount === 1 && !perPointTypes.has(type)) return [ramp[0]];
+  return ramp;
 }
 
 function renderChartError(slide, preset, message, x, y, w, h) {
