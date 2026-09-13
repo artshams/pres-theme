@@ -743,24 +743,11 @@ function addBackgroundImage(slide, imagePath, preset) {
   }));
 }
 
-// Role contracts are the upstream lab/consulting scaffolding: evidence plates,
-// readout registers, "EVIDENCE NOTES / Method · baseline · denominator" strips.
-// They fill themselves with English placeholder text when the outline gives no
-// real content, and the Пульс template has none of that furniture. A preset can
-// switch the whole system off here, at the three lookups every contract
-// renderer goes through, so it cannot be reached even if a slide or an external
-// caller sets composition_grammar / role_systems directly.
-function roleContractsDisabled(preset) {
-  return Boolean(preset && preset.disable_role_contracts);
-}
-
 function compositionGrammar(preset, slideData = {}) {
-  if (roleContractsDisabled(preset)) return '';
   return String(slideData.composition_grammar || preset.composition_grammar || '').trim().toLowerCase();
 }
 
 function roleSystem(preset, slideData, role) {
-  if (roleContractsDisabled(preset)) return '';
   const local = slideData.role_systems && typeof slideData.role_systems === 'object'
     ? slideData.role_systems
     : {};
@@ -771,7 +758,6 @@ function roleSystem(preset, slideData, role) {
 }
 
 function roleContract(preset, slideData, role) {
-  if (roleContractsDisabled(preset)) return null;
   return contractForResolvedPlan(slideData, preset, role);
 }
 
@@ -3637,7 +3623,7 @@ function renderStandard(pptx, slide, slideData, preset) {
       return [
         match ? match[1] : `S${index + 1}`,
         match ? match[2] : item,
-        safeText(slideData.body),
+        safeText(slideData.body, 'Supporting evidence'),
       ];
     });
     if (rows.length) {
@@ -5127,7 +5113,7 @@ function renderPolicyEvidenceRecord(slide, slideData, preset, header, contract, 
     fontFace: preset.font_heading, fontSize: safeText(anchor.value).length > 8 ? 36 : 48,
     bold: true, color: 'FFFFFF', fit: 'shrink',
   }));
-  slide.addText(safeText(anchor.label), textOpts({
+  slide.addText(safeText(anchor.label, 'Primary evidence'), textOpts({
     x: body.x + 0.38, y: body.y + 1.70, w: anchorW - 0.72, h: 0.72,
     fontFace: preset.font_heading, fontSize: roleBodyFont(preset, 17),
     bold: true, color: 'FFFFFF', fit: 'shrink',
@@ -6270,7 +6256,7 @@ function addCompactTable(slide, preset, table, box, opts) {
 
 function addRoleIndexPanel(slide, preset, table, box, referenceTable) {
   if (!box) return;
-  const label = referenceTable ? 'SOURCE INDEX' : safeText(table.title).toUpperCase();
+  const label = referenceTable ? 'SOURCE INDEX' : safeText(table.title, 'OPERATING INDEX').toUpperCase();
   const detail = [
     `${table.rows.length} ${referenceTable ? 'sources' : 'rows'}`,
     table.headers.slice(0, 3).map((item) => safeText(item)).filter(Boolean).join(' · '),
@@ -8776,7 +8762,7 @@ function sidebarPrimaryMetric(slideData) {
   if (!first) return null;
   return {
     value: safeText(first.value || first.number || first.metric),
-    label: safeText(first.label || first.title || first.name),
+    label: safeText(first.label || first.title || first.name, 'Primary readout'),
     context: safeText(first.context || first.note || first.detail),
   };
 }
@@ -9957,7 +9943,7 @@ function renderChartThresholdBand(slide, preset, facts, note, x, y, w, h) {
     ? `${primary.value} ${primary.label || ''}`.trim()
     : noteIsSource
       ? 'Source-linked chart'
-      : safeText(noteText);
+      : safeText(noteText, 'Threshold check');
   const secondaryLine = secondary.value
     ? `${secondary.value} ${secondary.label || secondary.caption || ''}`.trim()
     : noteIsSource
@@ -9994,7 +9980,7 @@ function renderContractChartInsight(slide, preset, fact, note, box) {
   if (!box) return;
   const accent = preset[(fact && fact.accent) || 'accent_primary'] || preset.accent_primary;
   const value = safeText(fact && fact.value);
-  const label = safeText((fact && (fact.label || fact.caption)) || note);
+  const label = safeText((fact && (fact.label || fact.caption)) || note, 'Key readout');
   slide.addShape('rect', shapeOpts({
     x: box.x, y: box.y, w: box.w, h: box.h,
     fill: { color: preset.surface || 'FFFFFF' },
@@ -10116,7 +10102,7 @@ function chartLeadFact(payload, facts = []) {
   if (!best) {
     return {
       value: '',
-      label: safeText(payload && payload.title),
+      label: safeText(payload && payload.title, 'Priority evidence'),
     };
   }
   const suffix = safeText(
@@ -10292,7 +10278,7 @@ function renderChartContract(pptx, slide, slideData, preset, payload, facts, not
         fontFace: preset.font_heading, fontSize: valueText.length > 8 ? 20 : 26,
         bold: true, color: accent, fit: 'shrink', valign: 'middle',
       }));
-      slide.addText(safeText(fact.label || fact.caption), textOpts({
+      slide.addText(safeText(fact.label || fact.caption, 'Priority evidence'), textOpts({
         x: insightBox.x + valueW + 0.14, y: insightBox.y + 0.04,
         w: Math.max(0.42, insightBox.w - valueW - 0.14), h: insightBox.h - 0.08,
         fontFace: preset.font_heading, fontSize: roleBodyFont(preset, 15.5),
