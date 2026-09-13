@@ -209,6 +209,11 @@ function buildPreset(theme) {
     light_only: true,
     square_plates: (theme.plates || {}).square_corners !== false,
     plate_shadow: (theme.plates || {}).shadow === true,
+    // The template has no evidence plates, readout registers or "EVIDENCE
+    // NOTES / Method · baseline · denominator" strips. Those are the upstream
+    // role-contract scaffolding, and they fill themselves with English filler,
+    // so the whole system is off for this theme.
+    disable_role_contracts: true,
 
     type_ramp: typeRamp(t),
     readability_contract: {
