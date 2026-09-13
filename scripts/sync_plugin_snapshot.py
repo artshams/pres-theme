@@ -49,18 +49,10 @@ SCRIPT_DEVELOPMENT_ONLY = {
     "validate_distribution.py",
 }
 
-SCREENSHOTS = {
-    "v0.11_monochrome_lab_ab.jpg": REPO / "examples/v0.11_monochrome_lab_ab.jpg",
-    "v0.9_narrative_structures.jpg": REPO / "examples/v0.9_narrative_structures.jpg",
-    "v0.9_evidence_data_structures.jpg": REPO / "examples/v0.9_evidence_data_structures.jpg",
-    "v0.9_decisions_sources.jpg": REPO / "examples/v0.9_decisions_sources.jpg",
-    "presentation_skill_variant_proof.png": REPO
-    / "decks/native-vs-latest-random-topics-20260623/readme_images/presentation_skill_variant_proof.png",
-    "presentation_skill_style_family_proof.png": REPO
-    / "decks/native-vs-latest-random-topics-20260623/readme_images/presentation_skill_style_family_proof.png",
-    "codex_native_vs_updated_clean_three_topics.png": REPO
-    / "decks/native-vs-latest-random-topics-20260623/readme_images/codex_native_vs_updated_clean_three_topics.png",
-}
+# Upstream mirrored a set of marketing screenshots into the plugin's assets
+# folder. This fork does not ship them -- they are showcase images, not part of
+# the skill, and they weighed ~2 MB -- so there is nothing to sync here.
+SCREENSHOTS = {}
 
 
 def _ignore(_dir: str, names: list[str]) -> set[str]:
